@@ -1,20 +1,14 @@
-# 数据处理 pipeline
-# 同济子豪兄 2023-6-28
-
-# 数据集路径
-dataset_type = 'UrbanVillageDataset' # 数据集类名  # mmseg/dataset/init里声明的
-data_root = 'UrbanVillageDataset' # 数据集路径（相对于mmsegmentation主目录）
-
-# 输入模型的图像裁剪尺寸，一般是 128 的倍数，越小显存开销越少
-crop_size = (512, 512)
-
-# 训练预处理
+# dataset settings
+dataset_type = 'ChaseDB1Dataset'
+data_root = 'data/CHASE_DB1'
+img_scale = (960, 999)
+crop_size = (128, 128)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
     dict(
         type='RandomResize',
-        scale=(2048, 1024),
+        scale=img_scale,
         ratio_range=(0.5, 2.0),
         keep_ratio=True),
     dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
@@ -22,19 +16,17 @@ train_pipeline = [
     dict(type='PhotoMetricDistortion'),
     dict(type='PackSegInputs')
 ]
-
-# 测试预处理
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', scale=(2048, 1024), keep_ratio=True),
+    dict(type='Resize', scale=img_scale, keep_ratio=True),
+    # add loading annotation after ``Resize`` because ground truth
+    # does not need to do resize data transform
     dict(type='LoadAnnotations'),
     dict(type='PackSegInputs')
 ]
-
-# TTA后处理
 img_ratios = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
 tta_pipeline = [
-    dict(type='LoadImageFromFile', file_client_args=dict(backend='disk')),
+    dict(type='LoadImageFromFile', backend_args=None),
     dict(
         type='TestTimeAug',
         transforms=[
@@ -49,20 +41,22 @@ tta_pipeline = [
         ])
 ]
 
-# 训练 Dataloader
 train_dataloader = dict(
-    batch_size=2,
-    num_workers=2,
+    batch_size=4,
+    num_workers=4,
     persistent_workers=True,
     sampler=dict(type='InfiniteSampler', shuffle=True),
     dataset=dict(
-        type=dataset_type,
-        data_root=data_root,
-        data_prefix=dict(
-            img_path='img/train', seg_map_path='ann/train'),
-        pipeline=train_pipeline))
+        type='RepeatDataset',
+        times=40000,
+        dataset=dict(
+            type=dataset_type,
+            data_root=data_root,
+            data_prefix=dict(
+                img_path='images/training',
+                seg_map_path='annotations/training'),
+            pipeline=train_pipeline)))
 
-# 验证 Dataloader
 val_dataloader = dict(
     batch_size=1,
     num_workers=4,
@@ -72,24 +66,10 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_prefix=dict(
-            img_path='img/val', seg_map_path='ann/val'),
+            img_path='images/validation',
+            seg_map_path='annotations/validation'),
         pipeline=test_pipeline))
+test_dataloader = val_dataloader
 
-# 测试 Dataloader
-test_dataloader = dict(
-    batch_size=1,
-    num_workers=4,
-    persistent_workers=True,
-    sampler=dict(type='DefaultSampler', shuffle=False),
-    dataset=dict(
-        type=dataset_type,
-        data_root=data_root,
-        data_prefix=dict(
-            img_path='img/test', seg_map_path='ann/test'),
-        pipeline=test_pipeline))
-
-# 验证 Evaluator
-val_evaluator = dict(type='IoUMetric', iou_metrics=['mIoU', 'mDice', 'mFscore'])
-
-# 测试 Evaluator
+val_evaluator = dict(type='IoUMetric', iou_metrics=['mDice'])
 test_evaluator = val_evaluator

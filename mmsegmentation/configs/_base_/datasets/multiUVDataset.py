@@ -2,15 +2,15 @@
 # 同济子豪兄 2023-6-28
 
 # 数据集路径
-dataset_type = 'UrbanVillageDataset' # 数据集类名  # mmseg/dataset/init里声明的
-data_root = 'UrbanVillageDataset' # 数据集路径（相对于mmsegmentation主目录）
+dataset_type = 'UrbanVillageDataset' # 数据集类名
+data_root = 'MultiDataset/guangzhou' # 数据集路径（相对于mmsegmentation主目录）
 
 # 输入模型的图像裁剪尺寸，一般是 128 的倍数，越小显存开销越少
 crop_size = (512, 512)
 
 # 训练预处理
 train_pipeline = [
-    dict(type='LoadImageFromFile'),
+    dict(type='LoadSingleRSImageFromFile'),
     dict(type='LoadAnnotations'),
     dict(
         type='RandomResize',
@@ -19,13 +19,13 @@ train_pipeline = [
         keep_ratio=True),
     dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
     dict(type='RandomFlip', prob=0.5),
-    dict(type='PhotoMetricDistortion'),
+    dict(type='PhotoMetricDistortionLimitedChannels'),
     dict(type='PackSegInputs')
 ]
 
 # 测试预处理
 test_pipeline = [
-    dict(type='LoadImageFromFile'),
+    dict(type='LoadSingleRSImageFromFile'),
     dict(type='Resize', scale=(2048, 1024), keep_ratio=True),
     dict(type='LoadAnnotations'),
     dict(type='PackSegInputs')
@@ -34,7 +34,7 @@ test_pipeline = [
 # TTA后处理
 img_ratios = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
 tta_pipeline = [
-    dict(type='LoadImageFromFile', file_client_args=dict(backend='disk')),
+    dict(type='LoadSingleRSImageFromFile', file_client_args=dict(backend='disk')),
     dict(
         type='TestTimeAug',
         transforms=[
@@ -59,7 +59,7 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_prefix=dict(
-            img_path='img/train', seg_map_path='ann/train'),
+            img_path='multiband/train', seg_map_path='ann/train'),
         pipeline=train_pipeline))
 
 # 验证 Dataloader
@@ -72,7 +72,7 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_prefix=dict(
-            img_path='img/val', seg_map_path='ann/val'),
+            img_path='multiband/val', seg_map_path='ann/val'),
         pipeline=test_pipeline))
 
 # 测试 Dataloader
@@ -85,7 +85,7 @@ test_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_prefix=dict(
-            img_path='img/test', seg_map_path='ann/test'),
+            img_path='multiband/test', seg_map_path='ann/test'),
         pipeline=test_pipeline))
 
 # 验证 Evaluator
