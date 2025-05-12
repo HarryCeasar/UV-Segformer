@@ -1,4 +1,10 @@
+# BEGIN: 添加这部分代码 (确保这是文件的最开始)
+custom_imports = dict(
+    imports=['mmsegmentation.mmseg.models.segmentors.feature_decision_encoder_decoder'],
+    allow_failed_imports=False
+
 # checkpoint = 'https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/segformer/mit_b5_20220624-658746d9.pth'
+
 crop_size = (
     512,
     512,
